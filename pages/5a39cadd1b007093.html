@@ -1,0 +1,151 @@
+
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Index: 199 - Merry Christmas</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: url('christmas.jpg') no-repeat center center fixed; /* Background image */
+      background-size: cover;
+      font-family: "Arial", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white; /* Ensure text is readable on the background */
+    }
+
+    .mail-container {
+      position: relative;
+      width: 400px;
+      height: 250px;
+      perspective: 1000px;
+      margin-bottom: 20px;
+    }
+
+    .mail {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      animation: openMail 2s forwards;
+    }
+
+    .envelope {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #fff;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      backface-visibility: hidden;
+    }
+
+    .envelope-front {
+      transform: rotateX(0deg);
+      z-index: 2;
+    }
+
+    .envelope-back {
+      transform: rotateX(180deg);
+    }
+
+    .message-container {
+      display: none;
+      width: 800px;
+      background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white */
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header {
+      font-size: 36px;
+      color: #e63946; /* A festive red color */
+      margin-bottom: 10px;
+      font-family: "Cursive", sans-serif;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .sender-receiver {
+      margin-top: 20px;
+      text-align: left;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .sender-receiver div {
+      margin-bottom: 10px;
+    }
+
+    .message-body {
+      margin-top: 20px;
+      background-color: #f9f9f9;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 18px;
+      line-height: 1.8;
+      white-space: pre-wrap; /* Preserve line breaks */
+      color: #2a2a2a;
+    }
+
+    @keyframes openMail {
+      0% {
+        transform: rotateX(0deg);
+      }
+      50% {
+        transform: rotateX(90deg);
+      }
+      100% {
+        transform: rotateX(180deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Mail Animation -->
+  <div class="mail-container">
+    <div class="mail">
+      <div class="envelope envelope-front"></div>
+      <div class="envelope envelope-back"></div>
+    </div>
+  </div>
+
+  <!-- Message Content -->
+  <div class="message-container" id="message-container">
+    <div class="header">Merry Christmas</div>
+
+    <!-- Sender and Receiver -->
+    <div class="sender-receiver">
+      <div><strong>From:</strong> <span id="sender">张三</span></div>
+      <div><strong>To:</strong> <span id="receiver">李四</span></div>
+    </div>
+
+    <!-- Message Body -->
+    <div class="message-body" id="message-body">
+      谢谢啊
+    </div>
+  </div>
+
+  <script>
+    // Show the content after the mail animation
+    const messageContainer = document.getElementById('message-container');
+    const mail = document.querySelector('.mail');
+
+    mail.addEventListener('animationend', () => {
+      const mailContainer = document.querySelector('.mail-container');
+      mailContainer.style.display = 'none'; // Hide the envelope after the animation
+      messageContainer.style.display = 'block'; // Show the message content
+    });
+  </script>
+</body>
+</html>
+      

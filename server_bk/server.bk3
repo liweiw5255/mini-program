@@ -1,0 +1,124 @@
+const express = require('express');
+const https = require('https');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+// HTTPS Configuration
+const sslOptions = {
+  key: fs.readFileSync('/etc/letsencrypt/live/wlw2ltj.online/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/wlw2ltj.online/fullchain.pem'),
+};
+
+// Initialize variables
+const app = express();
+const pagesDir = path.join(__dirname, 'pages');
+
+// Mapping of uniqueId -> page data
+const pageMap = {};
+
+// Ensure directory exists
+if (!fs.existsSync(pagesDir)) {
+  fs.mkdirSync(pagesDir, { recursive: true });
+  console.log('Created pages directory');
+}
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.text());
+app.use(express.static(pagesDir));
+
+// Generate random filename based on pageIndex as seed
+function generateRandomFileName(pageIndex, extension = 'html') {
+  // Use pageIndex as the seed to generate a "random" but deterministic filename
+  const hash = crypto.createHash('sha256').update(String(pageIndex)).digest('hex');
+  return hash.slice(0, 16) + '.' + extension; // 16-character hash
+}
+
+// Root route
+app.get('/', (req, res) => {
+  const indexPath = path.join(pagesDir, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Homepage not found. Please ensure index.html exists.');
+  }
+});
+
+// Update page content endpoint
+app.post('/api/update-page', (req, res) => {
+  const { pageIndex, sender, receiver, content } = req.body;
+
+  if (!sender || !receiver || !content) {
+    return res.status(400).json({ success: false, message: 'Missing required fields: sender, receiver, content' });
+  }
+
+  try {
+    // Generate unique filename using pageIndex as seed
+    const uniqueId = generateRandomFileName(pageIndex);
+    const filePath = path.join(pagesDir, uniqueId);
+
+    // Construct HTML content
+    const htmlContent = `
+      <html>
+        <head><title>Message</title></head>
+        <body>
+          <h1>From: ${sender}</h1>
+          <p>To: ${receiver}</p>
+          <div>${content}</div>
+        </body>
+      </html>
+      `
+    ;
+    fs.writeFileSync(filePath, htmlContent);
+
+    // Update pageMap with the page data
+    pageMap[uniqueId] = { sender, receiver, content, status: true, fileName: uniqueId };
+
+    res.json({ success: true, message: 'Page updated successfully', uniqueId });
+  } catch (error) {
+    console.error('Error updating page:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// Retrieve page content by uniqueId
+app.get('/page/:uniqueId', (req, res) => {
+  const { uniqueId } = req.params;
+
+  if (!pageMap[uniqueId]) {
+    return res.status(404).send('Page not found');
+  }
+
+  const filePath = path.join(pagesDir, pageMap[uniqueId].fileName);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('File not found');
+  }
+});
+
+// Get page content via API
+app.get('/api/get-content', (req, res) => {
+  const { uniqueId } = req.query;
+
+  if (!uniqueId || !pageMap[uniqueId]) {
+    return res.status(404).json({ success: false, message: 'Content not found' });
+  }
+
+  res.json({ success: true, content: pageMap[uniqueId] });
+});
+
+// Get all pages in the pageMap
+app.get('/api/get-all-content', (req, res) => {
+  res.json({ success: true, pages: pageMap });
+});
+
+// Start HTTPS server
+const PORT = 443;
+https.createServer(sslOptions, app).listen(PORT, () => {
+  console.log('HTTPS Server running at https://wlw2ltj.online:${PORT}');
+}); 

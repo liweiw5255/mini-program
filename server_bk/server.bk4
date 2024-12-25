@@ -1,0 +1,244 @@
+const express = require('express');
+const https = require('https');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const sqlite3 = require('sqlite3').verbose();  // SQLite module
+
+// HTTPS Configuration
+const sslOptions = {
+  key: fs.readFileSync('/etc/letsencrypt/live/wlw2ltj.online/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/wlw2ltj.online/fullchain.pem'),
+};
+
+// Initialize Express app
+const app = express();
+const pagesDir = path.join(__dirname, 'pages');
+
+// Ensure directory exists
+if (!fs.existsSync(pagesDir)) {
+  fs.mkdirSync(pagesDir, { recursive: true });
+  console.log('Created pages directory');
+}
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.text());
+app.use(express.static(pagesDir));
+
+// SQLite Database
+const db = new sqlite3.Database('./pages.db', (err) => {
+  if (err) {
+    console.error('Error opening database', err);
+  } else {
+    console.log('Connected to SQLite database');
+    createTablesIfNeeded();
+  }
+});
+
+// Function to create tables if they don't exist
+function createTablesIfNeeded() {
+  // PageMetadata table: Stores pageIndex and filename
+  db.run(`
+    CREATE TABLE IF NOT EXISTS PageMetadata (
+      pageIndex INTEGER PRIMARY KEY,
+      filename TEXT NOT NULL
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Error creating PageMetadata table:', err);
+    } else {
+      console.log('PageMetadata table is ready');
+    }
+  });
+
+  // PageStatus table: Stores pageIndex, sender, receiver, content, and status
+  db.run(`
+    CREATE TABLE IF NOT EXISTS PageStatus (
+      pageIndex INTEGER PRIMARY KEY,
+      sender TEXT NOT NULL,
+      receiver TEXT NOT NULL,
+      content TEXT NOT NULL,
+      status BOOLEAN DEFAULT 1
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Error creating PageStatus table:', err);
+    } else {
+      console.log('PageStatus table is ready');
+    }
+  });
+}
+
+// Generate random filename based on pageIndex
+function generateRandomFileName(pageIndex, extension = 'html') {
+  const hash = crypto.createHash('sha256').update(String(pageIndex)).digest('hex');
+  return hash.slice(0, 16) + '.' + extension; // 16-character hash
+}
+
+// Function to generate 100 pages upon server startup
+async function generateInitialPages() {
+  for (let i = 1; i <= 200; i++) {
+    const sender = `Sender ${i}`;
+    const receiver = `Receiver ${i}`;
+    const content = `This is the content of page ${i}`;
+
+    // Generate unique filename using pageIndex as seed
+    const uniqueId = generateRandomFileName(i);
+    const filePath = path.join(pagesDir, uniqueId);
+
+    // Construct HTML content for the page
+    const htmlContent = `
+      <html>
+        <head><title>Message</title></head>
+        <body>
+          <h1>From: ${sender}</h1>
+          <p>To: ${receiver}</p>
+          <div>${content}</div>
+        </body>
+      </html>
+    `;
+    fs.writeFileSync(filePath, htmlContent);
+
+    // Insert page metadata into SQLite
+    db.run(`
+      INSERT INTO PageMetadata (pageIndex, filename) VALUES (?, ?)`,
+      [i, uniqueId], function(err) {
+        if (err) {
+          console.error('Error inserting page metadata:', err);
+        }
+      });
+
+    // Insert page status into SQLite
+    db.run(`
+      INSERT INTO PageStatus (pageIndex, sender, receiver, content, status) VALUES (?, ?, ?, ?, ?)`,
+      [i, sender, receiver, content, 1], function(err) {
+        if (err) {
+          console.error('Error inserting page status:', err);
+        }
+      });
+  }
+
+  console.log('200 pages created successfully');
+}
+
+// Root route (serves index.html)
+app.get('/', (req, res) => {
+  const indexPath = path.join(pagesDir, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Homepage not found. Please ensure index.html exists.');
+  }
+});
+
+// Update page content and store data in SQLite
+app.post('/api/update-page', (req, res) => {
+  const { pageIndex, sender, receiver, content } = req.body;
+
+  if (!sender || !receiver || !content) {
+    return res.status(400).json({ success: false, message: 'Missing required fields: sender, receiver, content' });
+  }
+
+  try {
+    // Generate unique filename using pageIndex as seed
+    const uniqueId = generateRandomFileName(pageIndex);
+    const filePath = path.join(pagesDir, uniqueId);
+
+    // Construct HTML content for the page
+    const htmlContent = `
+      <html>
+        <head><title>Message</title></head>
+        <body>
+          <h1>From: ${sender}</h1>
+          <p>To: ${receiver}</p>
+          <div>${content}</div>
+        </body>
+      </html>
+    `;
+    fs.writeFileSync(filePath, htmlContent);
+
+    // Insert page metadata into SQLite
+    db.run(`
+      INSERT INTO PageMetadata (pageIndex, filename) VALUES (?, ?)`,
+      [pageIndex, uniqueId], function(err) {
+        if (err) {
+          console.error('Error inserting page metadata:', err);
+        }
+      });
+
+    // Insert page status into SQLite
+    db.run(`
+      INSERT INTO PageStatus (pageIndex, sender, receiver, content, status) VALUES (?, ?, ?, ?, ?)`,
+      [pageIndex, sender, receiver, content, 1], function(err) {
+        if (err) {
+          console.error('Error inserting page status:', err);
+        }
+      });
+
+    res.json({ success: true, message: 'Page updated successfully', uniqueId });
+  } catch (error) {
+    console.error('Error updating page:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// Retrieve page content by uniqueId
+app.get('/page/:uniqueId', (req, res) => {
+  const { uniqueId } = req.params;
+
+  // Query SQLite for the page metadata
+  db.get(`
+    SELECT filename FROM PageMetadata WHERE pageIndex = ?`,
+    [uniqueId], (err, row) => {
+      if (err || !row) {
+        return res.status(404).send('Page not found');
+      }
+
+      const filePath = path.join(pagesDir, row.filename);
+      if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+      } else {
+        res.status(404).send('File not found');
+      }
+    });
+});
+
+// Get page content via API
+app.get('/api/get-content', (req, res) => {
+  const { uniqueId } = req.query;
+
+  // Query SQLite for page status
+  db.get(`
+    SELECT * FROM PageStatus WHERE pageIndex = ?`,
+    [uniqueId], (err, row) => {
+      if (err || !row) {
+        return res.status(404).json({ success: false, message: 'Content not found' });
+      }
+
+      res.json({ success: true, content: row });
+    });
+});
+
+// Get all pages in the PageStatus table
+app.get('/api/get-all-content', (req, res) => {
+  db.all("SELECT * FROM PageStatus", (err, rows) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Error retrieving pages' });
+    }
+
+    res.json({ success: true, pages: rows });
+  });
+});
+
+// Start HTTPS server
+const PORT = 443;
+https.createServer(sslOptions, app).listen(PORT, () => {
+  console.log(`HTTPS Server running at https://wlw2ltj.online:${PORT}`);
+});
+
+// Generate 100 initial pages when server starts
+// generateInitialPages();

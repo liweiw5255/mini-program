@@ -3,45 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>首页</title>
+  <title>Mail Animation</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f8f9fa;
       margin: 0;
       padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f8f8f8;
+      font-family: Arial, sans-serif;
     }
-    .container {
-      max-width: 800px;
-      margin: 50px auto;
+
+    .mail-container {
+      position: relative;
+      width: 300px;
+      height: 200px;
+      perspective: 1000px;
+    }
+
+    .mail {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      animation: openMail 2s forwards;
+    }
+
+    .envelope {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #fff;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      backface-visibility: hidden;
+    }
+
+    .envelope-front {
+      transform: rotateX(0deg);
+      z-index: 2;
+    }
+
+    .envelope-back {
+      transform: rotateX(180deg);
+    }
+
+    .content {
+      display: none;
+      position: absolute;
+      width: 100%;
+      height: 100%;
       padding: 20px;
-      background: white;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      border-radius: 8px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      text-align: center;
     }
-    h1 {
-      color: #007bff;
+
+    .content h1 {
+      font-size: 24px;
+      color: #333;
+      margin-bottom: 10px;
     }
-    a {
-      display: inline-block;
-      margin: 10px 0;
-      padding: 10px 20px;
-      color: white;
-      text-decoration: none;
-      background-color: #007bff;
-      border-radius: 5px;
+
+    .content p {
+      font-size: 16px;
+      color: #555;
     }
-    a:hover {
-      background-color: #0056b3;
+
+    @keyframes openMail {
+      0% {
+        transform: rotateX(0deg);
+      }
+      50% {
+        transform: rotateX(90deg);
+      }
+      100% {
+        transform: rotateX(180deg);
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>欢迎访问首页</h1>
-    <p>请选择以下操作：</p>
-    <a href="page1.html">访问 Page 1</a>
+  <div class="mail-container">
+    <div class="mail">
+      <div class="envelope envelope-front"></div>
+      <div class="envelope envelope-back"></div>
+    </div>
+    <div class="content" id="content">
+      <h1>Merry Christmas</h1>
+      <p>Your custom message will appear here.</p>
+    </div>
   </div>
+
+  <script>
+    // Show the content after the animation
+    const content = document.getElementById('content');
+    const mail = document.querySelector('.mail');
+
+    mail.addEventListener('animationend', () => {
+      mail.style.display = 'none'; // Hide the envelope after opening
+      content.style.display = 'block'; // Show the content
+    });
+  </script>
 </body>
 </html>

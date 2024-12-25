@@ -1,0 +1,114 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Page Index: 146 - Merry Christmas</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              background: url('christmas.jpg') no-repeat center center fixed; /* Background image */
+              background-size: cover;
+              font-family: "Arial", sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              color: white; /* Ensure text is readable on the background */
+            }
+
+            .message-container {
+              width: 800px;
+              background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white */
+              border-radius: 10px;
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+              padding: 20px;
+              text-align: center;
+              position: relative;
+              overflow: hidden;
+            }
+
+            .header {
+              font-size: 36px;
+              color: #e63946; /* A festive red color */
+              margin-bottom: 10px;
+              font-family: "Cursive", sans-serif;
+              text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+
+            .decorations img {
+              position: absolute;
+              width: 80px;
+            }
+
+            .decoration-top-left {
+              top: 20px;
+              left: 20px;
+            }
+
+            .decoration-top-right {
+              top: 20px;
+              right: 20px;
+            }
+
+            .decoration-bottom-left {
+              bottom: 20px;
+              left: 20px;
+            }
+
+            .decoration-bottom-right {
+              bottom: 20px;
+              right: 20px;
+            }
+
+            .sender-receiver {
+              margin-top: 20px;
+              text-align: left;
+              font-size: 18px;
+              color: #333;
+            }
+
+            .sender-receiver div {
+              margin-bottom: 10px;
+            }
+
+            .message-body {
+              margin-top: 20px;
+              background-color: #f9f9f9;
+              padding: 20px;
+              border: 1px solid #ddd;
+              border-radius: 10px;
+              font-size: 18px;
+              line-height: 1.8;
+              white-space: pre-wrap; /* Preserve line breaks */
+              color: #2a2a2a;
+            }
+
+            .footer {
+              margin-top: 20px;
+              font-size: 14px;
+              color: #555;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="message-container">
+            <div class="header">Merry Christmas</div>
+
+            <!-- Sender and Receiver -->
+            <div class="sender-receiver">
+              <div><strong>From:</strong> <span id="sender">张三</span></div>
+              <div><strong>To:</strong> <span id="receiver">李四</span></div>
+            </div>
+
+            <!-- Message Body -->
+            <div class="message-body" id="message-body">
+              衣带渐宽终不悔，为伊消得人憔悴。
+            </div>
+
+          </div>
+        </body>
+        </html>
+      
